@@ -156,20 +156,23 @@ npm init
 скрипта **main.js** используется команда:
 
   ```
-  grunt build_script --project=GreatIridiumProject
+  grunt build_script --project=GreatIridiumProject[.irpz или .sirpz]
   ```
 
 Для сборки проекта без генерации скрипта (например, если вы внесли какие-то изменения в **main.js** для отладки):
 
   ```
-  grunt build_from_temp --project=GreatIridiumProject
+  grunt build_from_temp --project=GreatIridiumProject[.irpz или .sirpz]
   ```
 
 Для сборки релиза (при сборке релиза скрипт **main.js** делается нечитаемым, командой **uglify**):
 
   ```
-  grunt build_release --project=GreatIridiumProject
+  grunt build_release --project=GreatIridiumProject[.irpz или .sirpz]
   ```
+
+<span style="color:red">**ВАЖНО:** обязательно указывать расширение: .irpz или .sirpz</span>
+
 
 ## Редактирование проекта Iridium
 
@@ -183,7 +186,7 @@ npm init
 
 Для того чтобы сделать отображение текущей версии проекта в интерфейсе нужно:
 - В проекте создать токен проекта **AppVersion**
-- В локальном скрипте (например, **app.js**) добавить следующий когд:
+- В локальном скрипте (например, **app.js**) добавить следующий код:
 
   ```
   var AppVersion = '{{ VERSION }}';
