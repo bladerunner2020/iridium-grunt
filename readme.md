@@ -198,4 +198,4 @@ npm init
 
 ## Авторы
 
-* Александр Пивоваров aka Bladerunner2020 (pivovarov@gmail.comx )
+* Александр Пивоваров aka Bladerunner2020 ([pivovarov@gmail.com](mailto:pivovarov@gmail.com))
