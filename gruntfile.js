@@ -9,9 +9,14 @@ module.exports = function(grunt){
 
     function buildScriptList() {
         var scriptList = getPackageValue('projectScripts');
-        scriptList.unshift("temp/scripts/main.js");
+        if (scriptList) {
+            scriptList.unshift("temp/scripts/main.js");
+            console.log('Local scripts: ' + scriptList);
+        } else {
+            console.log('WARNING: Local scripts not found in project.json!');
+            scriptList = ["temp/scripts/main.js"];
 
-        console.log('Local scripts: ' + scriptList);
+        }
 
         return scriptList;
     }
@@ -187,13 +192,15 @@ module.exports = function(grunt){
 
         var dependencies = getPackageValue('dependencies');
 
+
         for (obj in dependencies){
-            var modulePath = 'node_modules/' + obj + '/index.js';
-            var moduleJsonPath = 'node_modules/' + obj + '/package.json';
-            if (!grunt.file.exists(modulePath)) {
-                // Завершаем grunt-cкрипт с ошибкой
-                grunt.fail.warn('Script not found: ' + modulePath);
-            }
+            var modulePath = 'node_modules/' + obj;
+            var moduleIndex = modulePath + '/index.js';
+            var moduleJsonPath = modulePath + '/package.json';
+            // if (!grunt.file.exists(modulePath)) {
+            //     // Завершаем grunt-cкрипт с ошибкой
+            //     grunt.fail.warn('Script not found: ' + modulePath);
+            // }
 
             if (!grunt.file.exists(moduleJsonPath)) {
                 // Завершаем grunt-cкрипт с ошибкой
@@ -202,8 +209,26 @@ module.exports = function(grunt){
 
             var moduleJson = grunt.file.readJSON(moduleJsonPath);
             var moduleVersion  = moduleJson ? moduleJson.version : null;
-            moduleScriptList.push(modulePath);
-            grunt.log.writeln('Script: ' + modulePath + '  (v.' + moduleVersion +')');
+
+            grunt.log.writeln('Script: ' + moduleIndex + '  (v.' + moduleVersion +')');
+
+            var moduleDependencies = moduleJson.projectScripts;
+
+            if (!moduleDependencies && !grunt.file.exists(moduleIndex)) {
+                grunt.fail.warn('package.json doesn\'t have projectScripts and index.js not found');
+            }
+
+            if (moduleDependencies) {
+                for (var i = 0; i < moduleDependencies.length; i++) {
+                    var script = modulePath + '/' + moduleDependencies[i];
+                    console.log('adding script ' + script);
+                    moduleScriptList.push(script);
+                }
+            } else {
+                moduleScriptList.push(moduleIndex);
+                grunt.log.writeln('Script: ' + moduleIndex );
+            }
+
         }
     });
 
