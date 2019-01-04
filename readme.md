@@ -2,10 +2,9 @@
 
 ## Введение
 
-**gruntfile.js** содержит grunt-скрипт для сборки проекта **i3pro Iridium Mobile**. Он предназначен для того, чтобы можно
-было создавать скрипты для проектов **Iridium Mobile** во внешних IDE-средах (например, WebStorm), создавать универсальные
+Данный проект преднозначен для автоматической сборки проектов **i3pro Iridium Mobile**. Он позволяет создавать скрипты для проектов **Iridium Mobile** во внешних IDE-средах (например, WebStorm), создавать универсальные
 js-модули, которые можно использовать в разных проектах, использовать механизм контроля версий, автоматической нумерации
-версий проекта, сборки проекта из IDE.
+версий проекта и билда, сборки проекта из различных IDE.
 
 ### Файловая струкутура проекта
 
@@ -32,10 +31,9 @@ GreatIridiumProject
 
 ```
 
-В корень проекта помещаются файлы **gruntfile.js** и **package.json**, в папку **project** нужно положить файл с проектом **.irpz** или
-**.sirpz**, в папку **scripts** вы помещаете локальные скрипты проекта.
+В корень проекта помещаются файлы **gruntfile.js** и **package.json**, в папку **project** нужно положить файл с проектом **.irpz** или **.sirpz** (начиная с версии 2.x в папке  **project** дожен быть только одни файл), в папку **scripts** вы помещаете локальные скрипты проекта.
 
-Список локальных скриптов проекта должен быть прописан в файле **package.json** в раздел **projectScripts**.
+Список локальных скриптов проекта должен быть прописан в файле **package.json** в раздел **projectScripts**. Глобальные скрипты и модули помещаются в раздел **dependencies** (требование к таким модулям: они должны содержать весь код в файле **index.js** в корне папки модуля и должны быть написаны специально для Iridium).
 
 Папки **temp** и **build** создаются автоматически grunt скриптом. Папка **node_modules** создается утилитой **npm**.
 
@@ -52,10 +50,11 @@ GreatIridiumProject
 
 ### Файл package.json
 
-Для создания начального файла **package.json** нужно в корневой папке проекта выполнить команду:
+Для создания начального файла **package.json** нужно в корневой папке проекта выполнить команды:
 
 ```
-npm init
+npm init -y
+npm install https://github.com/bladerunner2020/iridium-grunt.git --save-dev
 ```
 
 При сборке проекта Iridium будут задействованы разделы **dependencies** (стандартный раздел) и **projectScripts**
@@ -75,7 +74,7 @@ npm init
 В разделе **projectScripts** ()создается в файле **package.json** вручную) нужно прописать все локальные скрипты, которые
 помещаются в папку **scripts**.
 
- ```
+ ```json
   "projectScripts": [
     "scripts/localscript1.js",
     "scripts/localscript2.js",
@@ -88,6 +87,18 @@ npm init
 
 В разделе **devDependencies** находятся js-модули, которые используются для работы **grunt**.
 
+### Файл gruntfile.js
+
+В корне проекта необходимо создать файл **gruntfile.js**:
+
+```javascript
+module.exports = function(grunt) {
+    var IridiumGrunt = require('iridium-grunt');
+    new IridiumGrunt(grunt);
+};
+```
+
+
 ### Принцип работы
 
 Сборка проекта осуществляется следующим образом:
@@ -96,83 +107,54 @@ npm init
 - файл проекта **.irpz** или **.sirpz** копируется в папку **temp**, переименовывается в **.zip** и разархивируется
 - берутся файлы **index.js** из глобальных модулей (находятся в **node_modules/<iridium_module>**) и локальные скрипты и
 объединяется в файл **main.js**, который помещается в папку **temp/scripts/**
-- в **main.js** ищется строка **'{{ VERSION }}'** и заменяется на текущую версию из папки **package.json**
+- в **main.js** ищутся строки **'{{ VERSION }}'** и **'{{ BUILD_VERSION }}'**, которые заменяется на текущую версию и номер билда из **package.json** (для использования номера билда нужно добавить строчку `"build": 1` в **package.json**, после чего номер билда будет увеличиваться с каждой сборкой проекта).
 - проект в папке **temp** архивируется в zip, переименовывается в **.irpz** или **.sirps** и копируется в папку **build**.
-
 
 ## Установка
 
 1. Установить [Node JS](https://nodejs.org/)
-2. Создать файловую структуру, как указано выше
-3. Сгенерировать начальный проект, командой **npm init** (будет создан начальный файл **package.json**)
-4. Скачать файл **gruntfile.js** в корень проекта
-4. Создать в нем раздел **devDependencies**:
-
- ```
-  "devDependencies": {
-    "grunt": "^1.0.1",
-    "grunt-bump": "^0.8.0",
-    "grunt-contrib-clean": "^1.1.0",
-    "grunt-contrib-compress": "^1.4.3",
-    "grunt-contrib-concat": "^1.0.1",
-    "grunt-contrib-copy": "^1.0.0",
-    "grunt-contrib-uglify": "^3.2.1",
-    "grunt-file-exists": "^0.1.4",
-    "grunt-rename": "^0.1.4",
-    "grunt-string-replace": "^1.3.1",
-    "grunt-strip-code": "^1.0.6",
-    "grunt-version": "^1.2.1",
-    "grunt-zip": "^0.17.1",
-  }
-   ```
- Это можно сделать вручную, скопировав код в **package.json** либо исопльзуя команду:
-
- ```
- npm install grunt --save-dev
- npm install grunt-bump --save-dev
- npm install grunt-contrib-clean --save-dev
- ...
- ```
-
- Если раздел создается вручную, то после этого нужно запустить команду:
+2. Сгенерировать начальный проект:
+  ```bash
+  npm init -y
+  npm install https://github.com/bladerunner2020/iridium-grunt.git --save-dev
   ```
-  npm install
+3. Добавить раздел **localScripts** и локальные скрипты в **package.json** и установить глобальные модули (см. выше)
+4. Создать файл **gruntfile.js** в корне проекта
+  ```javascript
+  module.exports = function(grunt) {
+      var IridiumGrunt = require('iridium-grunt');
+      new IridiumGrunt(grunt);
+  };
   ```
-
-5. Добавить локальные скрипты в раздел **projectScripts** и установить глобальные модули (см. выше)
+5. Создать папку **project** и пместить в него проект с расширением **.irpz** или **.sirpz** (проект должен содержать скрипт **main.js**)
+6. Можно запустить сборку командой: `grunt build`
 
 ## Сборка проекта
 
 Для сборки проекта необходимо запустить команду:
 
+  ```bash
+  grunt build
   ```
-  grunt build --project=GreatIridiumProject
-  ```
-
-Вместо **GreatIridiumProject**, конечно, подставляется имя проекта.
 
 В процессе разработки иногда бывает нужным сгенерировать только скрипт **main.js**, но не собирать весь проект. Например,
-для отладки бывает удобней и быстрей генерировать **main.js** и копировать его в проект через буфер обмена. Для генерации только
-скрипта **main.js** используется команда:
+для отладки бывает удобней и быстрей генерировать **main.js** и копировать его в проект через буфер обмена. Для генерации только скрипта **main.js** используется команда:
 
-  ```
-  grunt build_script --project=GreatIridiumProject[.irpz или .sirpz]
+  ```bash
+  grunt build_script
   ```
 
 Для сборки проекта без генерации скрипта (например, если вы внесли какие-то изменения в **main.js** для отладки):
 
-  ```
-  grunt build_from_temp --project=GreatIridiumProject[.irpz или .sirpz]
+  ```bash
+  grunt build_from_temp
   ```
 
 Для сборки релиза (при сборке релиза скрипт **main.js** делается нечитаемым, командой **uglify**):
 
+  ```bash
+  grunt build_release
   ```
-  grunt build_release --project=GreatIridiumProject[.irpz или .sirpz]
-  ```
-
-<span style="color:red">**ВАЖНО:** обязательно указывать расширение: .irpz или .sirpz</span>
-
 
 ## Редактирование проекта Iridium
 
@@ -185,15 +167,17 @@ npm init
 ### Отображение текущей версии проекта
 
 Для того чтобы сделать отображение текущей версии проекта в интерфейсе нужно:
-- В проекте создать токен проекта **AppVersion**
+- В проекте создать токены проекта **AppVersion** и **BuildVersion**
 - В локальном скрипте (например, **app.js**) добавить следующий код:
 
-  ```
-  var AppVersion = '{{ VERSION }}';
-  IR.SetVariable('Global.AppVersion', 'v.' + AppVersion);
+  ```javascript
+  var appVersion = '{{ VERSION }}';
+  var buildVersion = '{{ BUILD_VERSION }}';
+  IR.SetVariable('Global.AppVersion', 'v.' + appVersion);
+  IR.SetVariable('Global.BuildVersion', 'v.' + buildVersion);
   ```
 
-- Сделать в GUI элемент и связать его с токеном проекта **AppVersion**
+- Сделать в GUI элементы и связать его с токенами проекта **AppVersion** и **BuildVersion**
 
 
 ## Авторы
