@@ -165,7 +165,7 @@ IridiumGrunt.prototype.loadModules = function() {
     grunt.loadNpmTasks('grunt-chmod');
 };
 
-IridiumGrunt.prototype.initGruntConfig = function(=) {
+IridiumGrunt.prototype.initGruntConfig = function() {
     var grunt = this.grunt;
 
     var pkg = grunt.file.readJSON('package.json');
