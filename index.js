@@ -57,7 +57,7 @@ function buildLocalScriptList(grunt) {
     var scriptList = getPackageValue(grunt, 'projectScripts');
 
     if (!scriptList) {
-        _warn(grunt, 'No local sripts in package.json');
+        _warn(grunt, 'No local scripts in package.json');
         return [];
     }
 
@@ -67,7 +67,7 @@ function buildLocalScriptList(grunt) {
 
         var path = item;
         if (path != 'temp/scripts/main.js' && !grunt.file.exists(path)) {
-            // Завершаем grunt-cкрипт с ошибкой
+            // Завершаем grunt-скрипт с ошибкой
             _warn(grunt, 'Script not found: ' + path);
             return; // Necessary if used with useConsole flag
         }   
@@ -141,7 +141,7 @@ IridiumGrunt.prototype.registerTasks = function() {
         }
         pkg.build = (buildNumber + 1).toString();
         grunt.file.write('package.json', JSON.stringify(pkg, null, 2));
-        _writeln(grunt, 'Build bumber increased: ' + buildNumber + ' => ' + pkg.build);  
+        _writeln(grunt, 'Build number increased: ' + buildNumber + ' => ' + pkg.build);  
     });
 
     grunt.registerTask('build_release', this.buildReleaseTasks);
