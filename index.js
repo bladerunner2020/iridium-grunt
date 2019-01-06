@@ -130,15 +130,18 @@ IridiumGrunt.prototype.registerTasks = function() {
 
     grunt.registerMultiTask('incbld', 'Increment build number', function() {
         var pkg = grunt.config.get('pkg');
-        var buildNumber = pkg.build;
-        try {
-            buildNumber = parseInt(buildNumber);
-            pkg.build = buildNumber + 1;
-            grunt.file.write('package.json', JSON.stringify(pkg, null, 2));
-            _writeln(grunt, 'Build bumber increased: ' + buildNumber + ' => ' + pkg.build);  
-        } catch(e) {
+        if (pkg.build == undefined) {
             _writeln(grunt, 'No build number in package.json');  
+            return;
         }
+        var buildNumber = parseInt(pkg.build);
+        if (isNaN(buildNumber)) {
+            _writeln(grunt, 'Wrong build number in package.json (cannot increment): ' + pkg.build);  
+            return;
+        }
+        pkg.build = (buildNumber + 1).toString();
+        grunt.file.write('package.json', JSON.stringify(pkg, null, 2));
+        _writeln(grunt, 'Build bumber increased: ' + buildNumber + ' => ' + pkg.build);  
     });
 
     grunt.registerTask('build_release', this.buildReleaseTasks);
@@ -167,8 +170,12 @@ IridiumGrunt.prototype.loadModules = function() {
 
 IridiumGrunt.prototype.initGruntConfig = function() {
     var grunt = this.grunt;
-
     var pkg = grunt.file.readJSON('package.json');
+
+    var resultName = pkg.build ? 
+        'build/' + this.projectName + '<%= pkg.version %>-<%= pkg.build %>.' + this.projectExtension :
+        'build/' + this.projectName + '<%= pkg.version %>.' + this.projectExtension;
+
     grunt.config.init({
         pkg: pkg,
         readpkg: {
@@ -264,7 +271,7 @@ IridiumGrunt.prototype.initGruntConfig = function() {
         rename: {
             toIrpz: {
                 src: 'build/myproject.zip',
-                dest: 'build/' + this.projectName + '<%= pkg.version %>.' + this.projectExtension
+                dest: resultName
             }
         },
         clean: {
@@ -291,7 +298,7 @@ IridiumGrunt.prototype.initGruntConfig = function() {
             'main': {
                 // Note: If you provide multiple src files, they will all be extracted to the same folder.
                 // This is not well-tested behavior so use at your own risk.
-                src: 'temp/' + this.projectName + '.' + this.projectExtensiong,
+                src: 'temp/' + this.projectName + '.' + this.projectExtension,
                 dest: 'temp/'
             }
         }
