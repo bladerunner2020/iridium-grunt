@@ -10,9 +10,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "js-ext": "git+ssh://github.com/bladerunner2020/js-ext.git#v1.18.2",
-    "debug2": "git+ssh://git@github.com/bladerunner2020/debug2.git#v2.1.2",
-    "debug-console": "git+ssh://git@github.com/bladerunner2020/debug-console.git#v2.3.1"
+    "js-ext": "git+ssh://github.com/bladerunner2020/js-ext.git",
+    "debug2": "git+ssh://git@github.com/bladerunner2020/debug2.git",
+    "debug-console": "git+ssh://git@github.com/bladerunner2020/debug-console.git"
   },
   "devDependencies": {
     "grunt": "^1.0.3",
