@@ -255,7 +255,7 @@ IridiumGrunt.prototype.registerTasks = function() {
         
         grunt.task.run('update-tags:remove');
         grunt.task.run('npm-update-ver');
-        grunt.task.run('update');
+        grunt.task.run('npm-update');
         grunt.task.run('update-tags:force');
     });
   
@@ -279,7 +279,7 @@ IridiumGrunt.prototype.registerTasks = function() {
     });
 
     // Update npm modules
-    grunt.registerTask('update', 'Update npm modules', function() {
+    grunt.registerTask('npm-update', 'Update npm modules', function() {
         var done = this.async();
 
         _writeln(grunt, 'Installing npm modules updates ...');
