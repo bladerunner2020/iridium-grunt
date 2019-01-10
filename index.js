@@ -17,10 +17,10 @@ function IridiumGrunt(grunt) {
     this.grunt = grunt;
 
     this.buildReleaseTasks = [
-        'clean:all', 'fileExists','copy:irpz', 'unzip', 'clean:prepare', 'concat', 'strip_code',
+        'update-tags:add', 'clean:all', 'fileExists','copy:irpz', 'unzip', 'clean:prepare', 'concat', 'strip_code',
         'incbld', 'readpkg', 'string-replace', 'uglify', 'chmod:mainRO', 'compress', 'rename'];
     this.buildTasks = [
-        'clean:all', 'fileExists','copy:irpz', 'unzip', 'clean:prepare', 'concat', 'strip_code',
+        'update-tags:add', 'clean:all', 'fileExists','copy:irpz', 'unzip', 'clean:prepare', 'concat', 'strip_code',
         'incbld', 'readpkg', 'string-replace', 'chmod:mainRO', 'compress', 'rename'];
     this.scriptOnlyTasks = ['clean:all', 'copy:irpz', 'unzip', 'clean:prepare', 'concat', 'strip_code',
         'incbld', 'readpkg', 'string-replace', 'chmod:mainRO'];    
@@ -49,8 +49,80 @@ function IridiumGrunt(grunt) {
 }
 
 function getPackageValue(grunt, value, fileName) {
-    var package_json = grunt.config.get('pkg') || grunt.file.readJSON(fileName || 'package.json');
+    var package_json = fileName ? grunt.file.readJSON(fileName) : grunt.config.get('pkg') || grunt.file.readJSON('package.json');
     return package_json? package_json[value] : null;
+}
+
+/**
+ * Add tags with version info to dependencies (info is taken from installed modules (package.json files in node_modules))
+ * @param {*} grunt 
+ * @param {boolean} force - if true updates dependencies and restore their original order
+ */
+function updateVersionTags(grunt, force) {
+    var options = grunt.config.get('update-tags');
+    var moduleList = options.list;
+    var pkg = grunt.config.get('pkg');
+    var dependencies = pkg.dependencies;
+
+    var updated = false;
+    for (var i = 0; i < moduleList.indexJS.length; i++) {
+        var packagePath = moduleList.packageJSON[i];
+        var name  = moduleList.names[i];
+        var version = getPackageValue(grunt, 'version', packagePath);
+        var dep = dependencies[name];
+        var oldVersion  = dep.replace(/.+#v/, '');
+        if (oldVersion == dep) { oldVersion = 'none'; }
+        dep = dependencies[name].replace(/#v.+$/, '');
+
+        if (oldVersion != version || force) {
+            _writeln(grunt, 'Updating: ' + dep + ' - ' + oldVersion + ' =>' + version);
+            dep += '#v' + version;
+
+            // This is necessary to restore original order of dependencies in package.json
+            if (force) {
+                delete dependencies[name];
+            }
+
+            dependencies[name] = dep;
+            updated = true;
+        }
+    }
+
+    if (updated) {
+        _writeln(grunt, 'Updating package.json...');
+        grunt.file.write('package.json', JSON.stringify(pkg, null, 2));
+    }
+}
+
+/**
+ * Remove tags with version info from dependencies
+ * @param {*} grunt 
+ */
+function removeVersionTags(grunt) {
+    var options = grunt.config.get('update-tags');
+    var moduleList = options.list;
+    var pkg = grunt.config.get('pkg');
+    var dependencies = pkg.dependencies;
+
+    var updated = false;
+    for (var i = 0; i < moduleList.indexJS.length; i++) {
+        var name  = moduleList.names[i];
+        var dep = dependencies[name];
+        var oldVersion  = dep.replace(/.+#v/, '');
+        dep = dependencies[name].replace(/#v.+$/, '');
+
+        if (dependencies[name] != dep) {
+            _writeln(grunt, 'Updating: ' + dep + ' - ' + oldVersion);
+            dependencies[name] = dep;
+            updated = true;
+        }
+    }
+
+    if (updated) {
+        _writeln(grunt, 'Updating package.json...');
+        grunt.file.write('package.json', JSON.stringify(pkg, null, 2));
+    }
+
 }
 
 function buildLocalScriptList(grunt) {
@@ -78,11 +150,14 @@ function buildLocalScriptList(grunt) {
     return scriptList;
 }
 
-function buildModuleScriptList(grunt) {
+function buildModuleList(grunt) {
     // Создаем массив модулей, прописанных в dependencies
     // Предполагается, что модуль состоит из одного файла index.js
 
-    var moduleScriptList = [];
+    var moduleScriptList = {};
+    moduleScriptList.indexJS = [];
+    moduleScriptList.packageJSON = []; 
+    moduleScriptList.names = [];
 
     var dependencies = getPackageValue(grunt, 'dependencies');
 
@@ -103,7 +178,11 @@ function buildModuleScriptList(grunt) {
 
         var moduleJson = grunt.file.readJSON(moduleJsonPath);
         var moduleVersion  = moduleJson ? moduleJson.version : null;
-        moduleScriptList.push(modulePath);
+
+        moduleScriptList.indexJS.push(modulePath);
+        moduleScriptList.packageJSON.push(moduleJsonPath);
+        moduleScriptList.names.push(obj);
+        
         _writeln(grunt, 'Script: ' + modulePath + '  (v.' + moduleVersion +')');
     }
 
@@ -150,6 +229,72 @@ IridiumGrunt.prototype.registerTasks = function() {
 
     grunt.registerTask('build_from_temp', ['compress', 'rename']);
     grunt.registerTask('clear', ['clean:all']);
+
+    grunt.registerMultiTask('update-tags', 'Update dependencies', function() {
+        // This task add or remove version tags to all dependencies in package.json
+
+        switch (this.target) {
+            case 'add':
+                updateVersionTags(grunt);
+                break;
+            case 'force':
+                updateVersionTags(grunt, true);
+                break;    
+            case 'remove':
+                removeVersionTags(grunt);
+                break;
+            default:
+                _fatal(grunt, 'Unexpected target for "update-tags" (expected "add" or "remove"');        
+        }
+    });
+
+
+    // Install NPM Updates
+    grunt.registerTask('update', 'Update package.json and update npm modules', function() {
+        _writeln(grunt, 'If you get an error here, run "npm install -g npm-check-updates".');
+        
+        grunt.task.run('update-tags:remove');
+        grunt.task.run('npm-update-ver');
+        grunt.task.run('update');
+        grunt.task.run('update-tags:force');
+    });
+  
+
+    // Write new versions to packages.json
+    grunt.registerTask('npm-update-ver', 'Write new versions to package.json', function() {
+        var done = this.async();
+
+        _writeln(grunt, 'Checking for npm modules updates ...');
+
+        grunt.util.spawn({
+            cmd: 'ncu',
+            args: ['-u'],
+            opts: {
+                stdio: 'inherit',
+            }
+        }, function () {
+            _writeln(grunt, 'New versions were written to "package.json".');
+            done();
+        });
+    });
+
+    // Update npm modules
+    grunt.registerTask('update', 'Update npm modules', function() {
+        var done = this.async();
+
+        _writeln(grunt, 'Installing npm modules updates ...');
+
+        grunt.util.spawn({
+            cmd: 'npm',
+            args: ['update','--loglevel','warn'],
+            opts: {
+                stdio: 'inherit',
+            }
+        }, function () {
+            _writeln(grunt, 'NPM modules were updated.');
+            done();
+        });
+    });
 };
 
 IridiumGrunt.prototype.loadModules = function() {
@@ -172,6 +317,9 @@ IridiumGrunt.prototype.initGruntConfig = function() {
     var grunt = this.grunt;
     var pkg = grunt.file.readJSON('package.json');
 
+    var moduleScriptList = buildModuleList(grunt);
+    var localScriptList = buildLocalScriptList(grunt);
+
     var resultName = pkg.build ? 
         'build/' + this.projectName + '<%= pkg.version %>-<%= pkg.build %>.' + this.projectExtension :
         'build/' + this.projectName + '<%= pkg.version %>.' + this.projectExtension;
@@ -179,10 +327,16 @@ IridiumGrunt.prototype.initGruntConfig = function() {
     grunt.config.init({
         pkg: pkg,
         readpkg: {
-            general: {}
+            dummy: {}
         },
         incbld: {
             dummy: {}
+        },
+        'update-tags': {
+            list: moduleScriptList,
+            remove : {},
+            force: {},
+            add : {}
         },
         version: {
             project: {
@@ -251,11 +405,11 @@ IridiumGrunt.prototype.initGruntConfig = function() {
                 separator: ';'
             },
             lib: {
-                src: buildModuleScriptList(grunt),
+                src: moduleScriptList.indexJS,
                 dest: 'temp/scripts/main.js'
             },
             script: {
-                src: buildLocalScriptList(grunt),
+                src: localScriptList,
                 dest: 'temp/scripts/main.js'
             }
         },
@@ -305,6 +459,5 @@ IridiumGrunt.prototype.initGruntConfig = function() {
 
     });
 };
-
 
 module.exports = IridiumGrunt;
