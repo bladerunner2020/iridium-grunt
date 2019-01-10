@@ -1,6 +1,6 @@
 {
   "name": "iridium-grunt",
-  "version": "2.0.3",
+  "version": "2.1.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -10,8 +10,10 @@
     "type": "git",
     "url": "git+https://github.com/bladerunner2020/iridium-grunt.git"
   },
-  "author": "Alexander Pivovarov aka bladerunner2020",
-  "license": "ISC",
+  "author": {
+    "name": "Alexander Pivovarov aka bladerunner2020",
+    "email": "pivovarov@gmail.com"},
+  "license": "MIT",
   "dependencies": {
     "grunt": "^1.0.3",
     "grunt-chmod": "^1.1.1",

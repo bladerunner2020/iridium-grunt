@@ -91,7 +91,6 @@ module.exports = function(grunt) {
 };
 ```
 
-
 ### Принцип работы
 
 Сборка проекта осуществляется следующим образом:
@@ -151,9 +150,15 @@ module.exports = function(grunt) {
 
 Если нужно внести изменения в GUI, добавить драйверы и т.д., то редактируете файл **.irpz** или **.sirpz** и помещаете его в папку **project** взамен предыдущего файла. Если у вас настроен **git**, то версии проекта также будут сохраняться в репозитории.
 
-## Дополнительно
+## Команды
+- `grunt build` - сборка рабочей версии проекта
+- `grunt release` - сборка релизной версии проекта
+- `grunt build_script` - сборка только скрипта **main.js** 
+- `grunt build_from_temp` - сборка версии проекта из папки **temp** (можно использовать после команды **build_script**)
+- `grunt update` - обновление всех модулей: вначале запускается **npm check update**, а потом **npm update**
+- `grunt update-tags:[add | remove | force]` - добавляет или удаляет теги с номером версии в **dependencies**
 
-### Отображение текущей версии проекта
+## Отображение текущей версии проекта в i3pro
 
 Для того чтобы сделать отображение текущей версии проекта в интерфейсе нужно:
 - В проекте создать токены проекта **AppVersion** и **BuildVersion**
@@ -166,9 +171,7 @@ module.exports = function(grunt) {
   IR.SetVariable('Global.BuildVersion', 'v.' + buildVersion);
   ```
 
-- Сделать в GUI элементы и связать его с токенами проекта **AppVersion** и **BuildVersion**
-
+- Сделать в GUI графические элементы и связать их с токенами проекта **AppVersion** и **BuildVersion**
 
 ## Авторы
-
-* Александр Пивоваров aka Bladerunner2020 ([pivovarov@gmail.com](mailto:pivovarov@gmail.com))
+- Александр Пивоваров aka Bladerunner2020 ([pivovarov@gmail.com](mailto:pivovarov@gmail.com))
