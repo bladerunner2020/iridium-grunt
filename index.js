@@ -434,7 +434,7 @@ IridiumGrunt.prototype.initGruntConfig = function() {
                 src: [ 'temp', 'build/*' + this.projectExtension ]
             },
             prepare:{
-                src: [ 'temp/*' + this.projectExtension, 'temp/scripts/*.js']
+                src: [ 'temp/*.' + this.projectExtension, 'temp/scripts/main.js']
             }
         },
 
