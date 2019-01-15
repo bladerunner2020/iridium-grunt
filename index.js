@@ -300,7 +300,7 @@ IridiumGrunt.prototype.registerTasks = function() {
 
 IridiumGrunt.prototype.loadModules = function() {
     var grunt = this.grunt;
-    grunt.loadNpmTasks('grunt-rename');
+    grunt.loadNpmTasks('grunt-contrib-rename');
     grunt.loadNpmTasks('grunt-contrib-clean');
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-contrib-uglify');
