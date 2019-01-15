@@ -83,9 +83,10 @@ function updateGitTags(grunt, force) {
     var dependencies = pkg.dependencies;
 
     var updated = false;
-    for (var i = 0; i < moduleList.indexJS.length; i++) {
-        var packagePath = moduleList.packageJSON[i];
-        var name  = moduleList.names[i];
+    for (var i = 0; i < moduleList.modules.length; i++) {
+        var module = moduleList.modules[i];
+        var packagePath = module.json;
+        var name  = module.name;
         var installedCommitUrl = getPackageValue(grunt, '_resolved', packagePath);  // link to installled commit
         var dep = dependencies[name];
 
@@ -125,8 +126,8 @@ function removeGitTags(grunt) {
     var dependencies = pkg.dependencies;
 
     var updated = false;
-    for (var i = 0; i < moduleList.indexJS.length; i++) {
-        var name  = moduleList.names[i];
+    for (var i = 0; i < moduleList.modules.length; i++) {
+        var name  = moduleList.modules[i].name;
         var dep = dependencies[name];
         var commitIsh  = dep.replace(/.+#/, '');
         dep = dependencies[name].replace(/#.+$/, '');
@@ -145,44 +146,45 @@ function removeGitTags(grunt) {
 
 }
 
-function buildLocalScriptList(grunt) {
-    var scriptList = getPackageValue(grunt, 'projectScripts');
+function buildLocalScriptList(grunt, mainJS, jsonPath) {
+    var scriptList = getPackageValue(grunt, 'projectScripts', jsonPath ? (jsonPath + '/package.json') : undefined);
 
     if (!scriptList) {
         _warn(grunt, 'No local scripts in package.json');
         return [];
     }
 
-    scriptList.unshift('temp/scripts/main.js');
+    var result  = [];
+
+    var tempMainJS = 'temp/scripts/' + mainJS;
 
     scriptList.forEach(function(item){
-
-        var path = item;
-        if (path != 'temp/scripts/main.js' && !grunt.file.exists(path)) {
+        var path = jsonPath ? (jsonPath + '/' + item) : item;
+        if (!grunt.file.exists(path)) {
             // Завершаем grunt-скрипт с ошибкой
             _warn(grunt, 'Script not found: ' + path);
-            return; // Necessary if used with useConsole flag
         }   
 
+        result.push(path);
         _writeln(grunt, 'Adding: ' + path);
     });
+    result.unshift(tempMainJS);
 
-    return scriptList;
+    return result;
 }
 
-function buildModuleList(grunt) {
+function buildModuleList(grunt, jsonPath) {
     // Создаем массив модулей, прописанных в dependencies
     // Предполагается, что модуль состоит из одного файла index.js
 
     var moduleScriptList = {};
     moduleScriptList.indexJS = [];
-    moduleScriptList.packageJSON = []; 
-    moduleScriptList.names = [];
+    moduleScriptList.modules = []; 
 
-    var dependencies = getPackageValue(grunt, 'dependencies');
+    var dependencies = getPackageValue(grunt, 'dependencies', jsonPath);
 
-    for (var obj in dependencies){
-        var moduleJsonPath = 'node_modules/' + obj + '/package.json';
+    for (var name in dependencies){
+        var moduleJsonPath = 'node_modules/' + name + '/package.json';
 
         var moduleJsonPathExist = grunt.file.exists(moduleJsonPath);
         if (!moduleJsonPathExist) {
@@ -195,17 +197,27 @@ function buildModuleList(grunt) {
         var indexJS = moduleJson ? moduleJson.main || 'index.js' : 'index.js';
         indexJS = (indexJS == '') ? 'index.js' : indexJS;
 
-        var modulePath = 'node_modules/' + obj + '/' + indexJS;
 
-        var modulePathExist = grunt.file.exists(modulePath);
-        if (!modulePathExist) {
-            // Завершаем grunt-cкрипт с ошибкой
-            _warn(grunt, 'Script not found: ' + modulePath);
+        var modulePath = 'node_modules/' + name + '/' + indexJS;
+
+        // Если indexJS == 'gruntfile.js', то это родительский проект, который обрабатывается особенным образом
+        if (indexJS != 'gruntfile.js') {
+            var modulePathExist = grunt.file.exists(modulePath);
+            if (!modulePathExist) {
+                // Завершаем grunt-cкрипт с ошибкой
+                _warn(grunt, 'Script not found: ' + modulePath);
+            }
+            moduleScriptList.indexJS.push(modulePath);
+        } else {
+            // Это родительский модуль
+            moduleScriptList.parentJson = moduleJsonPath;
+            moduleScriptList.parent = 'node_modules/' + name;
         }
 
-        moduleScriptList.indexJS.push(modulePath);
-        moduleScriptList.packageJSON.push(moduleJsonPath);
-        moduleScriptList.names.push(obj);
+        var module = {};
+        module.json = moduleJsonPath;
+        module.name = name;
+        moduleScriptList.modules.push(module);
         
         _writeln(grunt, 'Script: ' + modulePath + '  (v.' + moduleVersion +')');
     }
@@ -227,11 +239,11 @@ IridiumGrunt.prototype.setTasks = function(name, tasks) {
 
 IridiumGrunt.prototype.registerTasks = function() {
     var grunt = this.grunt;
-    grunt.registerMultiTask('readpkg', 'Read in the package.json file', function() {
+    grunt.registerTask('readpkg', 'Read in the package.json file', function() {
         grunt.config.set('pkg', grunt.file.readJSON('./package.json'));
     });
 
-    grunt.registerMultiTask('incbld', 'Increment build number', function() {
+    grunt.registerTask('incbld', 'Increment build number', function() {
         var pkg = grunt.config.get('pkg');
         if (pkg.build == undefined) {
             _writeln(grunt, 'No build number in package.json');  
@@ -349,25 +361,33 @@ IridiumGrunt.prototype.loadModules = function() {
     grunt.loadNpmTasks('grunt-chmod');
 };
 
+
 IridiumGrunt.prototype.initGruntConfig = function() {
     var grunt = this.grunt;
     var pkg = grunt.file.readJSON('package.json');
 
+    var mainJS = pkg['iridium-main'] || 'main.js';
+
+
     var moduleScriptList = buildModuleList(grunt);
-    var localScriptList = buildLocalScriptList(grunt);
+    var localScriptList = buildLocalScriptList(grunt, mainJS);
+
+    var parentLocalScriptList = null;
+    var parentModuleScriptList = null;
+    var parentMainJS = 'main.js';
+
+    if (moduleScriptList.parent) {
+        parentModuleScriptList =  buildModuleList(grunt, moduleScriptList.parentJson);
+        parentLocalScriptList = buildLocalScriptList(grunt, parentMainJS, moduleScriptList.parent);
+    }
 
     var resultName = pkg.build ? 
         'build/' + this.projectName + '<%= pkg.version %>-<%= pkg.build %>.' + this.projectExtension :
         'build/' + this.projectName + '<%= pkg.version %>.' + this.projectExtension;
 
-    grunt.config.init({
+
+    var initJson = {
         pkg: pkg,
-        readpkg: {
-            dummy: {}
-        },
-        incbld: {
-            dummy: {}
-        },
         'update-tags': {
             list: moduleScriptList,
             remove : {},
@@ -384,7 +404,7 @@ IridiumGrunt.prototype.initGruntConfig = function() {
                 options: {
                     mode : '444'
                 },
-                src: ['temp/scripts/main.js']
+                src: ['temp/scripts/' + mainJS]
             }
         },
 
@@ -409,16 +429,14 @@ IridiumGrunt.prototype.initGruntConfig = function() {
                 }
             },
             my_target: {
-                files: {
-                    'temp/scripts/main.js': ['temp/scripts/main.js']
-                }
+                src : ['temp/scripts/' + mainJS],
+                dest : 'temp/scripts/' + mainJS
             }
         },
         'string-replace': {
             version: {
-                files: {
-                    'temp/scripts/main.js': 'temp/scripts/main.js'
-                },
+                src : ['temp/scripts/' + mainJS],
+                dest : 'temp/scripts/' + mainJS,
                 options: {
                     replacements: [
                         {
@@ -435,19 +453,6 @@ IridiumGrunt.prototype.initGruntConfig = function() {
         },
         fileExists: {
             project: ['project/' + this.projectName + '.' + this.projectExtension]
-        },
-        concat: {
-            options: {
-                separator: ';'
-            },
-            lib: {
-                src: moduleScriptList.indexJS,
-                dest: 'temp/scripts/main.js'
-            },
-            script: {
-                src: localScriptList,
-                dest: 'temp/scripts/main.js'
-            }
         },
 
         copy: {
@@ -469,7 +474,7 @@ IridiumGrunt.prototype.initGruntConfig = function() {
                 src: [ 'temp', 'build/*' + this.projectExtension ]
             },
             prepare:{
-                src: [ 'temp/*.' + this.projectExtension, 'temp/scripts/main.js']
+                src: [ 'temp/*.' + this.projectExtension, 'temp/scripts/' + mainJS]
             }
         },
 
@@ -493,7 +498,41 @@ IridiumGrunt.prototype.initGruntConfig = function() {
             }
         }
 
-    });
+    };
+
+
+    var concatOpt = {
+        options: {
+            separator: ';'
+        }
+    };
+
+    if (parentModuleScriptList && parentModuleScriptList.indexJS && parentModuleScriptList.indexJS.length) {
+        concatOpt.list1 = {};
+        concatOpt.list1.src = parentModuleScriptList.indexJS;
+        concatOpt.list1.dest = 'temp/scripts/' + parentMainJS;
+    }
+    if (parentLocalScriptList && parentLocalScriptList.length) {
+        concatOpt.list2 = {};
+        concatOpt.list2.src = parentLocalScriptList;
+        concatOpt.list2.dest = 'temp/scripts/' + parentMainJS;           
+    }
+
+    if (moduleScriptList && moduleScriptList.indexJS && moduleScriptList.indexJS.length) {
+        concatOpt.list3 = {};
+        concatOpt.list3.src = moduleScriptList.indexJS;
+        concatOpt.list3.dest = 'temp/scripts/' + mainJS;
+    }
+
+    if (localScriptList && localScriptList.length) {
+        concatOpt.list4 = {};
+        concatOpt.list4.src = localScriptList;
+        concatOpt.list4.dest = 'temp/scripts/' + mainJS;           
+    }
+
+
+    initJson.concat = concatOpt;
+    grunt.config.init(initJson);
 };
 
 module.exports = IridiumGrunt;

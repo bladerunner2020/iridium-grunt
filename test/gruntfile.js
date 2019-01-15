@@ -1,4 +1,4 @@
 module.exports = function(grunt) {
-    var IridiumGrunt = require('../index');
+    var IridiumGrunt = require('../../iridium-grunt/index');
     new IridiumGrunt(grunt);
 };

@@ -1,7 +1,7 @@
 {
   "name": "test",
   "version": "1.0.7",
-  "build": "83",
+  "build": "98",
   "description": "",
   "main": "gruntfile.js",
   "scripts": {
@@ -17,6 +17,7 @@
   "devDependencies": {
     "iridium-grunt": "git+https://github.com/bladerunner2020/iridium-grunt.git"
   },
+  "iridium-main": "main.js",
   "projectScripts": [
     "scripts/app.js"
   ]
