@@ -228,8 +228,20 @@ IridiumGrunt.prototype.registerTasks = function() {
     grunt.registerTask('build:script', this.scriptOnlyTasks);
     grunt.registerTask('build', this.buildTasks);
 
-    grunt.registerTask('build_from_temp', ['compress', 'rename']);
+
+    grunt.registerTask('build_script', function(){
+        _fatal(grunt, 'Task build_script deprecated - use build:script');
+    });
+    grunt.registerTask('build_release', function(){
+        _fatal(grunt, 'Task build_release deprecated - use build:release');
+    });
+
+
+    grunt.registerTask('build:from_temp', ['compress', 'rename']);
     grunt.registerTask('clear', ['clean:all']);
+
+
+
 
     grunt.registerMultiTask('update-tags', 'Update dependencies', function() {
         // This task add or remove version tags to all dependencies in package.json
