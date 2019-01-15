@@ -224,8 +224,8 @@ IridiumGrunt.prototype.registerTasks = function() {
         _writeln(grunt, 'Build number increased: ' + buildNumber + ' => ' + pkg.build);  
     });
 
-    grunt.registerTask('build_release', this.buildReleaseTasks);
-    grunt.registerTask('build_script', this.scriptOnlyTasks);
+    grunt.registerTask('build:release', this.buildReleaseTasks);
+    grunt.registerTask('build:script', this.scriptOnlyTasks);
     grunt.registerTask('build', this.buildTasks);
 
     grunt.registerTask('build_from_temp', ['compress', 'rename']);
