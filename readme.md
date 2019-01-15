@@ -131,19 +131,19 @@ module.exports = function(grunt) {
 В процессе разработки иногда бывает нужным сгенерировать только скрипт **main.js**, но не собирать весь проект. Например, для отладки бывает удобней и быстрей генерировать **main.js** и копировать его в проект через буфер обмена. Для генерации только скрипта **main.js** используется команда:
 
   ```bash
-  grunt build_script
+  grunt build:script
   ```
 
 Для сборки проекта без генерации скрипта (например, если вы внесли какие-то изменения в **main.js** для отладки):
 
   ```bash
-  grunt build_from_temp
+  grunt build:from_temp
   ```
 
 Для сборки релиза (при сборке релиза скрипт **main.js** делается нечитаемым, командой **uglify**):
 
   ```bash
-  grunt build_release
+  grunt build:release
   ```
 
 ## Редактирование проекта Iridium
@@ -152,9 +152,9 @@ module.exports = function(grunt) {
 
 ## Команды
 - `grunt build` - сборка рабочей версии проекта
-- `grunt release` - сборка релизной версии проекта
-- `grunt build_script` - сборка только скрипта **main.js** 
-- `grunt build_from_temp` - сборка версии проекта из папки **temp** (можно использовать после команды **build_script**)
+- `grunt build:release` - сборка релизной версии проекта
+- `grunt build:script` - сборка только скрипта **main.js** 
+- `grunt build:from_temp` - сборка версии проекта из папки **temp** (можно использовать после команды **build:script**)
 - `grunt update` - обновление всех модулей: вначале запускается **npm check update**, а потом **npm update**
 - `grunt update-tags:[add | remove | force]` - добавляет или удаляет теги с номером версии в **dependencies**
 

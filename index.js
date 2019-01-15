@@ -28,6 +28,15 @@ function IridiumGrunt(grunt) {
 
     _writeln(grunt, 'Starting IridiumGrunt...');
 
+    var path = __dirname + '/package.json';
+    var pkg = grunt.file.readJSON(path );
+    if (pkg) {
+        var iridiumGruntVersion = pkg.version;
+        _writeln(grunt, 'IridiumGrunt version: ' + iridiumGruntVersion);
+    }
+
+    pkg = grunt.config.get('pkg') || grunt.file.readJSON('package.json');
+
     var projectFiles = grunt.file.expand(['project/*.irpz', 'project/*.sirpz']);
     if (projectFiles.length > 1) {
         _warn(grunt, 'Folder "project" has more than one file.');
@@ -41,6 +50,14 @@ function IridiumGrunt(grunt) {
         _writeln(grunt, 'Project name: ' + this.projectName + '.' + this.projectExtension);
     } else {
         _writeln(grunt, 'No project found in "project" folder.');
+    }
+    
+    if (pkg) {
+        var version = pkg.version;
+        var build = pkg.build;
+        _writeln(grunt, 'Version (package.json): ' + version + (build? ('-' + build) : ''));
+    } else {
+        _warn(grunt, 'Cannot read package.json');
     }
 
     this.initGruntConfig();
@@ -224,12 +241,24 @@ IridiumGrunt.prototype.registerTasks = function() {
         _writeln(grunt, 'Build number increased: ' + buildNumber + ' => ' + pkg.build);  
     });
 
-    grunt.registerTask('build_release', this.buildReleaseTasks);
-    grunt.registerTask('build_script', this.scriptOnlyTasks);
+    grunt.registerTask('build:release', this.buildReleaseTasks);
+    grunt.registerTask('build:script', this.scriptOnlyTasks);
     grunt.registerTask('build', this.buildTasks);
 
-    grunt.registerTask('build_from_temp', ['compress', 'rename']);
+
+    grunt.registerTask('build_script', function(){
+        _fatal(grunt, 'Task build_script deprecated - use build:script');
+    });
+    grunt.registerTask('build_release', function(){
+        _fatal(grunt, 'Task build_release deprecated - use build:release');
+    });
+
+
+    grunt.registerTask('build:from_temp', ['compress', 'rename']);
     grunt.registerTask('clear', ['clean:all']);
+
+
+
 
     grunt.registerMultiTask('update-tags', 'Update dependencies', function() {
         // This task add or remove version tags to all dependencies in package.json
@@ -300,7 +329,7 @@ IridiumGrunt.prototype.registerTasks = function() {
 
 IridiumGrunt.prototype.loadModules = function() {
     var grunt = this.grunt;
-    grunt.loadNpmTasks('grunt-rename');
+    grunt.loadNpmTasks('grunt-contrib-rename');
     grunt.loadNpmTasks('grunt-contrib-clean');
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-contrib-uglify');
