@@ -179,14 +179,7 @@ function buildModuleList(grunt) {
     var dependencies = getPackageValue(grunt, 'dependencies');
 
     for (var obj in dependencies){
-        var modulePath = 'node_modules/' + obj + '/index.js';
         var moduleJsonPath = 'node_modules/' + obj + '/package.json';
-
-        var modulePathExist = grunt.file.exists(modulePath);
-        if (!modulePathExist) {
-            // Завершаем grunt-cкрипт с ошибкой
-            _warn(grunt, 'Script not found: ' + modulePath);
-        }
 
         var moduleJsonPathExist = grunt.file.exists(moduleJsonPath);
         if (!moduleJsonPathExist) {
@@ -196,6 +189,16 @@ function buildModuleList(grunt) {
 
         var moduleJson = moduleJsonPathExist ? grunt.file.readJSON(moduleJsonPath) : null;
         var moduleVersion  = moduleJson ? moduleJson.version : null;
+        var indexJS = moduleJson ? moduleJson.main || 'index.js' : 'index.js';
+        indexJS = (indexJS == '') ? 'index.js' : indexJS;
+
+        var modulePath = 'node_modules/' + obj + '/' + indexJS;
+
+        var modulePathExist = grunt.file.exists(modulePath);
+        if (!modulePathExist) {
+            // Завершаем grunt-cкрипт с ошибкой
+            _warn(grunt, 'Script not found: ' + modulePath);
+        }
 
         moduleScriptList.indexJS.push(modulePath);
         moduleScriptList.packageJSON.push(moduleJsonPath);
