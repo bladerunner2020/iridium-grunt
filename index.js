@@ -28,6 +28,15 @@ function IridiumGrunt(grunt) {
 
     _writeln(grunt, 'Starting IridiumGrunt...');
 
+    var path = __dirname + '/package.json';
+    var pkg = grunt.file.readJSON(path );
+    if (pkg) {
+        var iridiumGruntVersion = pkg.version;
+        _writeln(grunt, 'IridiumGrunt version: ' + iridiumGruntVersion);
+    }
+
+    pkg = grunt.config.get('pkg') || grunt.file.readJSON('package.json');
+
     var projectFiles = grunt.file.expand(['project/*.irpz', 'project/*.sirpz']);
     if (projectFiles.length > 1) {
         _warn(grunt, 'Folder "project" has more than one file.');
@@ -41,6 +50,14 @@ function IridiumGrunt(grunt) {
         _writeln(grunt, 'Project name: ' + this.projectName + '.' + this.projectExtension);
     } else {
         _writeln(grunt, 'No project found in "project" folder.');
+    }
+    
+    if (pkg) {
+        var version = pkg.version;
+        var build = pkg.build;
+        _writeln(grunt, 'Version (package.json): ' + version + (build? ('-' + build) : ''));
+    } else {
+        _warn(grunt, 'Cannot read package.json');
     }
 
     this.initGruntConfig();
