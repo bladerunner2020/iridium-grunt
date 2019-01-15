@@ -13,15 +13,16 @@ function _warn (grunt, message ) {
     grunt.option('useConsole') ? console.log(message) : grunt.fail.warn(message);
 }
 
+
 function IridiumGrunt(grunt) {
     this.grunt = grunt;
 
     this.buildReleaseTasks = [
-        'update-tags:add', 'clean:all', 'fileExists','copy:irpz', 'unzip', 'clean:prepare', 'concat', 'strip_code',
-        'incbld', 'readpkg', 'string-replace', 'uglify', 'chmod:mainRO', 'compress', 'rename'];
+        'clean:all', 'fileExists','copy:irpz', 'unzip', 'clean:prepare', 'concat', 'strip_code',
+        'incbld', 'readpkg', 'update-tags:add', 'string-replace', 'uglify', 'chmod:mainRO', 'compress', 'rename'];
     this.buildTasks = [
-        'update-tags:add', 'clean:all', 'fileExists','copy:irpz', 'unzip', 'clean:prepare', 'concat', 'strip_code',
-        'incbld', 'readpkg', 'string-replace', 'chmod:mainRO', 'compress', 'rename'];
+        'clean:all', 'fileExists','copy:irpz', 'unzip', 'clean:prepare', 'concat', 'strip_code',
+        'incbld', 'readpkg', 'update-tags:add', 'string-replace', 'chmod:mainRO', 'compress', 'rename'];
     this.scriptOnlyTasks = ['clean:all', 'copy:irpz', 'unzip', 'clean:prepare', 'concat', 'strip_code',
         'incbld', 'readpkg', 'string-replace', 'chmod:mainRO'];    
 
@@ -75,7 +76,7 @@ function getPackageValue(grunt, value, fileName) {
  * @param {*} grunt 
  * @param {boolean} force - if true updates dependencies and restore their original order
  */
-function updateVersionTags(grunt, force) {
+function updateGitTags(grunt, force) {
     var options = grunt.config.get('update-tags');
     var moduleList = options.list;
     var pkg = grunt.config.get('pkg');
@@ -85,15 +86,17 @@ function updateVersionTags(grunt, force) {
     for (var i = 0; i < moduleList.indexJS.length; i++) {
         var packagePath = moduleList.packageJSON[i];
         var name  = moduleList.names[i];
-        var version = getPackageValue(grunt, 'version', packagePath);
+        var installedCommitUrl = getPackageValue(grunt, '_resolved', packagePath);  // link to installled commit
         var dep = dependencies[name];
-        var oldVersion  = dep.replace(/.+#v/, '');
-        if (oldVersion == dep) { oldVersion = 'none'; }
-        dep = dependencies[name].replace(/#v.+$/, '');
 
-        if (oldVersion != version || force) {
-            _writeln(grunt, 'Updating: ' + dep + ' - ' + oldVersion + ' =>' + version);
-            dep += '#v' + version;
+        var installedCommitIsh = installedCommitUrl.replace(/.+#/, '');                  // extact commit-ish
+        var oldCommitIsh  = dep.replace(/.+#/, '');                                 // extract commit-ish from dependency
+        if (oldCommitIsh == dep) { oldCommitIsh = 'none'; }
+        dep = dependencies[name].replace(/#.+$/, '');                               // remove commit-ish
+
+        if (oldCommitIsh != installedCommitIsh || force) {
+            _writeln(grunt, 'Updating: ' + dep + ': ' + oldCommitIsh + ' => ' + installedCommitIsh);
+            dep = installedCommitUrl;
 
             // This is necessary to restore original order of dependencies in package.json
             if (force) {
@@ -115,7 +118,7 @@ function updateVersionTags(grunt, force) {
  * Remove tags with version info from dependencies
  * @param {*} grunt 
  */
-function removeVersionTags(grunt) {
+function removeGitTags(grunt) {
     var options = grunt.config.get('update-tags');
     var moduleList = options.list;
     var pkg = grunt.config.get('pkg');
@@ -125,11 +128,11 @@ function removeVersionTags(grunt) {
     for (var i = 0; i < moduleList.indexJS.length; i++) {
         var name  = moduleList.names[i];
         var dep = dependencies[name];
-        var oldVersion  = dep.replace(/.+#v/, '');
-        dep = dependencies[name].replace(/#v.+$/, '');
+        var commitIsh  = dep.replace(/.+#/, '');
+        dep = dependencies[name].replace(/#.+$/, '');
 
         if (dependencies[name] != dep) {
-            _writeln(grunt, 'Updating: ' + dep + ' - ' + oldVersion);
+            _writeln(grunt, 'Updating: ' + dep + ': removed ' + commitIsh);
             dependencies[name] = dep;
             updated = true;
         }
@@ -268,13 +271,13 @@ IridiumGrunt.prototype.registerTasks = function() {
 
         switch (this.target) {
             case 'add':
-                updateVersionTags(grunt);
+                updateGitTags(grunt);
                 break;
             case 'force':
-                updateVersionTags(grunt, true);
+                updateGitTags(grunt, true);
                 break;    
             case 'remove':
-                removeVersionTags(grunt);
+                removeGitTags(grunt);
                 break;
             default:
                 _fatal(grunt, 'Unexpected target for "update-tags" (expected "add" or "remove"');        

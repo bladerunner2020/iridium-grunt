@@ -1,7 +1,7 @@
 {
   "name": "test",
   "version": "1.0.7",
-  "build": "60",
+  "build": "83",
   "description": "",
   "main": "gruntfile.js",
   "scripts": {
@@ -10,9 +10,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "js-ext": "git+ssh://github.com/bladerunner2020/js-ext.git",
-    "debug2": "git+ssh://git@github.com/bladerunner2020/debug2.git",
-    "debug-console": "git+ssh://git@github.com/bladerunner2020/debug-console.git"
+    "js-ext": "git+ssh://git@github.com/bladerunner2020/js-ext.git#d1cdb091b439d6d704eb0ce19c6d8816943e41ea",
+    "debug2": "git+ssh://git@github.com/bladerunner2020/debug2.git#9a0c6bbe2457870ffdde7696e6748131ae55ae06",
+    "debug-console": "git+ssh://git@github.com/bladerunner2020/debug-console.git#24970aec20daede93e54cb97ad62b85d034f6a5d"
   },
   "devDependencies": {
     "iridium-grunt": "git+https://github.com/bladerunner2020/iridium-grunt.git"
