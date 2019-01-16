@@ -115,6 +115,23 @@ function updateGitTags(grunt, force) {
     }
 }
 
+function saveDependenciesOrder(grunt) {
+    var pkg = grunt.config.get('pkg');
+    var dependencies = pkg.dependencies || {};   
+    var orderList = [];
+    
+    for (var name in dependencies) {
+        orderList.push(name);
+    }
+
+    pkg.dependenciesOrder = orderList;
+
+    if (orderList.length) {
+        _writeln(grunt, 'Saving dependencies order to package.json');
+        grunt.file.write('package.json', JSON.stringify(pkg, null, 2));
+    }
+}
+
 /**
  * Remove tags with version info from dependencies
  * @param {*} grunt 
@@ -175,15 +192,33 @@ function buildLocalScriptList(grunt, mainJS, jsonPath) {
 
 function buildModuleList(grunt, jsonPath) {
     // Создаем массив модулей, прописанных в dependencies
-    // Предполагается, что модуль состоит из одного файла index.js
 
     var moduleScriptList = {};
     moduleScriptList.indexJS = [];
     moduleScriptList.modules = []; 
 
     var dependencies = getPackageValue(grunt, 'dependencies', jsonPath);
+    var orderedList = getPackageValue(grunt, 'dependenciesOrder', jsonPath);
 
-    for (var name in dependencies){
+    var list = [];
+
+    // Compare dependencies and dependenciesOrder
+    for (var n in dependencies) { list.push(n); }
+    if (orderedList) {
+        if (orderedList.length !=  list.length) {
+            _warn(grunt, 'dependencies and dependenciesOrder count mismatch: ');   
+        }
+        orderedList.forEach( function(name) {
+            if (!dependencies[name]) {
+                _warn(grunt, 'dependencies and dependenciesOrder mismatch: ' + name);
+            }
+        });
+        list = orderedList;
+    }
+
+    for (var i = 0; i < list.length; i ++) {
+        var name = list[i];
+
         var moduleJsonPath = 'node_modules/' + name + '/package.json';
 
         var moduleJsonPathExist = grunt.file.exists(moduleJsonPath);
@@ -196,7 +231,6 @@ function buildModuleList(grunt, jsonPath) {
         var moduleVersion  = moduleJson ? moduleJson.version : null;
         var indexJS = moduleJson ? moduleJson.main || 'index.js' : 'index.js';
         indexJS = (indexJS == '') ? 'index.js' : indexJS;
-
 
         var modulePath = 'node_modules/' + name + '/' + indexJS;
 
@@ -296,6 +330,10 @@ IridiumGrunt.prototype.registerTasks = function() {
         }
     });
 
+    grunt.registerTask('save-dep-order', 'Save dependencies order', function(){
+        saveDependenciesOrder(grunt);
+    });
+
 
     // Install NPM Updates
     grunt.registerTask('update', 'Update package.json and update npm modules', function() {
@@ -372,11 +410,13 @@ IridiumGrunt.prototype.initGruntConfig = function() {
     var moduleScriptList = buildModuleList(grunt);
     var localScriptList = buildLocalScriptList(grunt, mainJS);
 
+    var hasParent = moduleScriptList.parent ? true : false;
+
     var parentLocalScriptList = null;
     var parentModuleScriptList = null;
     var parentMainJS = 'main.js';
 
-    if (moduleScriptList.parent) {
+    if (hasParent) {
         parentModuleScriptList =  buildModuleList(grunt, moduleScriptList.parentJson);
         parentLocalScriptList = buildLocalScriptList(grunt, parentMainJS, moduleScriptList.parent);
     }
@@ -431,24 +471,6 @@ IridiumGrunt.prototype.initGruntConfig = function() {
             my_target: {
                 src : ['temp/scripts/' + mainJS],
                 dest : 'temp/scripts/' + mainJS
-            }
-        },
-        'string-replace': {
-            version: {
-                src : ['temp/scripts/' + mainJS],
-                dest : 'temp/scripts/' + mainJS,
-                options: {
-                    replacements: [
-                        {
-                            pattern: /{{ VERSION }}/g,
-                            replacement: '<%= pkg.version %>'
-                        },
-                        {
-                            pattern: /{{ BUILD_VERSION }}/g,
-                            replacement: pkg.build ? '<%= pkg.build %>' : 'n/a'
-                        }
-                    ]
-                }
             }
         },
         fileExists: {
@@ -507,6 +529,46 @@ IridiumGrunt.prototype.initGruntConfig = function() {
         }
     };
 
+    var strReplaceOpt = {
+        version: {
+            src : ['temp/scripts/' + mainJS],
+            dest : 'temp/scripts/' + mainJS,
+            options: {
+                replacements: [
+                    {
+                        pattern: /{{ VERSION }}/g,
+                        replacement: '<%= pkg.version %>'
+                    },
+                    {
+                        pattern: /{{ BUILD_VERSION }}/g,
+                        replacement: pkg.build ? '<%= pkg.build %>' : 'n/a'
+                    }
+                ]
+            }
+        }
+    };
+
+    if (hasParent && parentMainJS != mainJS) {
+        var pkgParent = grunt.file.readJSON(moduleScriptList.parentJson);
+        
+        strReplaceOpt.version2 = {
+            src : ['temp/scripts/' + parentMainJS],
+            dest : 'temp/scripts/' + parentMainJS,
+            options: {
+                replacements: [
+                    {
+                        pattern: /{{ VERSION }}/g,
+                        replacement: pkgParent.version
+                    },
+                    {
+                        pattern: /{{ BUILD_VERSION }}/g,
+                        replacement: pkgParent.build ? pkgParent.build : 'n/a'
+                    }
+                ]
+            }
+        };
+    }
+
     if (parentModuleScriptList && parentModuleScriptList.indexJS && parentModuleScriptList.indexJS.length) {
         concatOpt.list1 = {};
         concatOpt.list1.src = parentModuleScriptList.indexJS;
@@ -532,6 +594,7 @@ IridiumGrunt.prototype.initGruntConfig = function() {
 
 
     initJson.concat = concatOpt;
+    initJson['string-replace'] = strReplaceOpt;
     grunt.config.init(initJson);
 };
 

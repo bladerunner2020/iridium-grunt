@@ -1,7 +1,7 @@
 {
   "name": "test",
   "version": "1.0.7",
-  "build": "98",
+  "build": "100",
   "description": "",
   "main": "gruntfile.js",
   "scripts": {
@@ -20,5 +20,10 @@
   "iridium-main": "main.js",
   "projectScripts": [
     "scripts/app.js"
+  ],
+  "dependenciesOrder": [
+    "js-ext",
+    "debug2",
+    "debug-console"
   ]
 }
