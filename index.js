@@ -19,7 +19,10 @@ function IridiumGrunt(grunt) {
 
     this.buildReleaseTasks = [
         'clean:all', 'fileExists','copy:irpz', 'unzip', 'clean:prepare', 'concat', 'strip_code',
-        'incbld', 'readpkg', 'update-tags:add', 'string-replace', 'uglify', 'chmod:mainRO', 'compress', 'rename'];
+        'incbld', 'version:project:minor', 'readpkg', 'update-tags:add', 'string-replace', 'uglify', 'chmod:mainRO', 'compress', 'rename'];
+    this.buildHotfixTasks = [
+        'clean:all', 'fileExists','copy:irpz', 'unzip', 'clean:prepare', 'concat', 'strip_code',
+        'incbld', 'version:project:patch', 'readpkg', 'update-tags:add', 'string-replace', 'uglify', 'chmod:mainRO', 'compress', 'rename'];
     this.buildTasks = [
         'clean:all', 'fileExists','copy:irpz', 'unzip', 'clean:prepare', 'concat', 'strip_code',
         'incbld', 'readpkg', 'update-tags:add', 'string-replace', 'chmod:mainRO', 'compress', 'rename'];
@@ -294,9 +297,9 @@ IridiumGrunt.prototype.registerTasks = function() {
     });
 
     grunt.registerTask('build:release', this.buildReleaseTasks);
+    grunt.registerTask('build:hotfix', this.buildHotfixTasks);
     grunt.registerTask('build:script', this.scriptOnlyTasks);
     grunt.registerTask('build', this.buildTasks);
-
 
     grunt.registerTask('build_script', function(){
         _fatal(grunt, 'Task build_script deprecated - use build:script');
@@ -305,12 +308,8 @@ IridiumGrunt.prototype.registerTasks = function() {
         _fatal(grunt, 'Task build_release deprecated - use build:release');
     });
 
-
     grunt.registerTask('build:from_temp', ['compress', 'rename']);
     grunt.registerTask('clear', ['clean:all']);
-
-
-
 
     grunt.registerMultiTask('update-tags', 'Update dependencies', function() {
         // This task add or remove version tags to all dependencies in package.json

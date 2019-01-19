@@ -1,7 +1,7 @@
 {
   "name": "test",
-  "version": "1.0.7",
-  "build": "100",
+  "version": "1.2.0",
+  "build": "103",
   "description": "",
   "main": "gruntfile.js",
   "scripts": {
