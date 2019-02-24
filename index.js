@@ -19,18 +19,24 @@ function IridiumGrunt(grunt) {
 
     this.buildReleaseTasks = [
         'clean:all', 'fileExists','copy:irpz', 'unzip', 'clean:prepare', 'concat', 'strip_code',
-        'incbld', 'version:project:minor', 'readpkg', 'update-tags:add', 'string-replace', 'uglify', 'chmod:mainRO', 'compress', 'rename'];
+        'incbld', 'version:project:minor', 'readpkg', 'update-tags:add', 'string-replace:version', 'uglify', 'chmod:mainRO', 'compress', 'rename'];
     this.buildHotfixTasks = [
         'clean:all', 'fileExists','copy:irpz', 'unzip', 'clean:prepare', 'concat', 'strip_code',
-        'incbld', 'version:project:patch', 'readpkg', 'update-tags:add', 'string-replace', 'uglify', 'chmod:mainRO', 'compress', 'rename'];
+        'incbld', 'version:project:patch', 'readpkg', 'update-tags:add', 'string-replace:version', 'uglify', 'chmod:mainRO', 'compress', 'rename'];
     this.buildTasks = [
         'clean:all', 'fileExists','copy:irpz', 'unzip', 'clean:prepare', 'concat', 'strip_code',
-        'incbld', 'readpkg', 'update-tags:add', 'string-replace', 'chmod:mainRO', 'compress', 'rename'];
+        'incbld', 'readpkg', 'update-tags:add', 'string-replace:version', 'chmod:mainRO', 'compress', 'rename'];
+    this.buildScriptNoDebug = ['clean:all', 'copy:irpz', 'unzip', 'clean:prepare', 'concat', 'strip_code',
+        'incbld', 'readpkg', 'string-replace:version', 'string-replace:debug', 'chmod:mainRO', 'pbcopy'];
+    this.buildNoConcat = [
+        'clean:all', 'fileExists','copy:irpz', 'unzip', 'clean:prepare', 'copy:noConcat', 
+        'string-replace:version', 'string-replace:debug', 'compress', 'rename'];    
     this.scriptOnlyTasks = ['clean:all', 'copy:irpz', 'unzip', 'clean:prepare', 'concat', 'strip_code',
-        'incbld', 'readpkg', 'string-replace', 'chmod:mainRO'];    
-
+        'incbld', 'readpkg', 'string-replace:version', 'chmod:mainRO', 'pbcopy'];
 
     _writeln(grunt, 'Starting IridiumGrunt...');
+
+
 
     var path = __dirname + '/package.json';
     var pkg = grunt.file.readJSON(path );
@@ -92,6 +98,11 @@ function updateGitTags(grunt, force) {
         var name  = module.name;
         var installedCommitUrl = getPackageValue(grunt, '_resolved', packagePath);  // link to installled commit
         var dep = dependencies[name];
+
+        if (!installedCommitUrl) {
+            _warn(grunt, 'Module ' + name + ' has no _resolved in package.json');
+            continue;
+        }
 
         var installedCommitIsh = installedCommitUrl.replace(/.+#/, '');                  // extact commit-ish
         var oldCommitIsh  = dep.replace(/.+#/, '');                                 // extract commit-ish from dependency
@@ -299,6 +310,8 @@ IridiumGrunt.prototype.registerTasks = function() {
     grunt.registerTask('build:release', this.buildReleaseTasks);
     grunt.registerTask('build:hotfix', this.buildHotfixTasks);
     grunt.registerTask('build:script', this.scriptOnlyTasks);
+    grunt.registerTask('build:noConcat', this.buildNoConcat);
+    grunt.registerTask('build:scriptNoDebug', this.buildScriptNoDebug);
     grunt.registerTask('build', this.buildTasks);
 
     grunt.registerTask('build_script', function(){
@@ -333,7 +346,6 @@ IridiumGrunt.prototype.registerTasks = function() {
         saveDependenciesOrder(grunt);
     });
 
-
     // Install NPM Updates
     grunt.registerTask('update', 'Update package.json and update npm modules', function() {
         _writeln(grunt, 'If you get an error here, run "npm install -g npm-check-updates".');
@@ -342,6 +354,49 @@ IridiumGrunt.prototype.registerTasks = function() {
         grunt.task.run('npm-update-ver');
         grunt.task.run('npm-update');
         grunt.task.run('update-tags:force');
+    });
+
+    grunt.registerTask('pbcopy', 'copy main.js to clipboard', function(){
+        // This funciton support OSX only!
+        // TODO: Add check for OSX
+
+        function pbcopy(data) {
+            return new Promise(function(resolve, reject) {
+                const proc = require('child_process').spawn('pbcopy');
+                proc.on('error', function(err) {
+                    reject(err);
+                });
+                proc.on('close', function() {
+                    resolve();
+                });
+                proc.stdin.write(data);
+                proc.stdin.end();
+            });
+        }
+
+        var done = this.async();
+
+        var fs = require('fs');
+        fs.open('temp/scripts/main.js', 'r', function(err, fileToRead){
+            if (!err){
+                fs.readFile(fileToRead, {encoding: 'utf-8'}, function(err,data){
+                    if (!err){
+                        pbcopy(data)
+                            .then(function() {
+                                _writeln(grunt, 'main.js copied to clipboard');
+                                done();
+                            });
+                    } else{
+                        _warn(grunt, 'Failed to copy main.js to clipboard');
+                        done();
+                    }
+                
+                });
+            }else{
+                _warn(grunt, 'Failed to copy main.js to clipboard');
+                done();
+            }
+        });
     });
   
 
@@ -478,10 +533,15 @@ IridiumGrunt.prototype.initGruntConfig = function() {
 
         copy: {
             irpz: {
-                expand :true,
+                expand: true,
                 cwd: 'project/',
                 src: [this.projectName + '.' + this.projectExtension],
                 dest: 'temp'
+            },
+            noConcat: {
+                expand: true,
+                flatten: true,
+                dest: 'temp/scripts'
             }
         },
         rename: {
@@ -529,9 +589,19 @@ IridiumGrunt.prototype.initGruntConfig = function() {
     };
 
     var strReplaceOpt = {
+        debug: {
+            src : ['temp/scripts/*.js'],
+            dest : 'temp/scripts/',
+            options: {
+                replacements: [{
+                    pattern: /_Debug\([^;]+;/ig,
+                    replacement: ''
+                }]
+            }
+        },
         version: {
-            src : ['temp/scripts/' + mainJS],
-            dest : 'temp/scripts/' + mainJS,
+            src : ['temp/scripts/*.js'],
+            dest : 'temp/scripts/',
             options: {
                 replacements: [
                     {
@@ -546,27 +616,6 @@ IridiumGrunt.prototype.initGruntConfig = function() {
             }
         }
     };
-
-    if (hasParent && parentMainJS != mainJS) {
-        var pkgParent = grunt.file.readJSON(moduleScriptList.parentJson);
-        
-        strReplaceOpt.version2 = {
-            src : ['temp/scripts/' + parentMainJS],
-            dest : 'temp/scripts/' + parentMainJS,
-            options: {
-                replacements: [
-                    {
-                        pattern: /{{ VERSION }}/g,
-                        replacement: pkgParent.version
-                    },
-                    {
-                        pattern: /{{ BUILD_VERSION }}/g,
-                        replacement: pkgParent.build ? pkgParent.build : 'n/a'
-                    }
-                ]
-            }
-        };
-    }
 
     if (parentModuleScriptList && parentModuleScriptList.indexJS && parentModuleScriptList.indexJS.length) {
         concatOpt.list1 = {};
@@ -592,8 +641,17 @@ IridiumGrunt.prototype.initGruntConfig = function() {
     }
 
 
+    var copyList1 = concatOpt.list1 ? concatOpt.list1.src : [];
+    var copyList2 = concatOpt.list2 ? concatOpt.list2.src : [];
+    var copyList3 = concatOpt.list3 ? concatOpt.list3.src : [];
+    var copyList4 = concatOpt.list4 ? concatOpt.list4.src : [];
+
+
+    initJson.copy.noConcat.src = copyList1.concat(copyList2).concat(copyList3).concat(copyList4);
     initJson.concat = concatOpt;
+
     initJson['string-replace'] = strReplaceOpt;
+
     grunt.config.init(initJson);
 };
 

@@ -154,8 +154,10 @@ module.exports = function(grunt) {
 - `grunt build` - сборка рабочей версии проекта (версия не меняется, увеличивается build)
 - `grunt build:hotfix` - сборка  версии проекта (увеличивается версия patch, увеличивается build)
 - `grunt build:release` - сборка релизной версии проекта (увеличивается номер minor версии, увеличивается build)
-- `grunt build:script` - сборка только скрипта **main.js**  (увеличивается номер build)
+- `grunt build:script` - сборка только скрипта **main.js**  (увеличивается номер build). На Mac OS скрипт копируется в буфер обмена.
 - `grunt build:from_temp` - сборка версии проекта из папки **temp** (можно использовать после команды **build:script**)
+- 'grunt build:noConcat' - сборка проекта без объединения всех скриптов в одни скрипт **main.js**
+- 'grunt build:scriptNoDebug' - сборка скрипта с удалением всей отладочной выдачи **_Debug**
 - `grunt update` - обновление всех модулей: вначале запускается **npm check update**, а потом **npm update**
 - `grunt update-tags:[add | remove | force]` - добавляет или удаляет теги с номером версии в **dependencies**
 - `grunt save-dep-order` - сохраняет текущий порядок модулей в поле **dependenciesOrder**
