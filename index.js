@@ -30,13 +30,11 @@ function IridiumGrunt(grunt) {
         'incbld', 'readpkg', 'string-replace:version', 'string-replace:debug', 'chmod:mainRO', 'pbcopy'];
     this.buildNoConcat = [
         'clean:all', 'fileExists','copy:irpz', 'unzip', 'clean:prepare', 'copy:noConcat', 
-        'string-replace:version', 'string-replace:debug', 'compress', 'rename'];    
+        'string-replace:version', 'compress', 'rename'];    
     this.scriptOnlyTasks = ['clean:all', 'copy:irpz', 'unzip', 'clean:prepare', 'concat', 'strip_code',
         'incbld', 'readpkg', 'string-replace:version', 'chmod:mainRO', 'pbcopy'];
 
     _writeln(grunt, 'Starting IridiumGrunt...');
-
-
 
     var path = __dirname + '/package.json';
     var pkg = grunt.file.readJSON(path );
