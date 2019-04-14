@@ -26,12 +26,12 @@ function IridiumGrunt(grunt) {
     this.buildTasks = [
         'clean:all', 'fileExists','copy:irpz', 'unzip', 'clean:prepare', 'concat', 'strip_code',
         'incbld', 'readpkg', 'update-tags:add', 'string-replace:version', 'chmod:mainRO', 'compress', 'rename'];
-    this.buildScriptNoDebug = ['clean:all', 'copy:irpz', 'unzip', 'clean:prepare', 'concat', 'strip_code',
+    this.buildScriptNoDebug = ['clean:all', 'concat', 'strip_code',
         'incbld', 'readpkg', 'string-replace:version', 'string-replace:debug', 'chmod:mainRO', 'pbcopy'];
     this.buildNoConcat = [
         'clean:all', 'fileExists','copy:irpz', 'unzip', 'clean:prepare', 'copy:noConcat', 
         'string-replace:version', 'compress', 'rename'];    
-    this.scriptOnlyTasks = ['clean:all', 'copy:irpz', 'unzip', 'clean:prepare', 'concat', 'strip_code',
+    this.scriptOnlyTasks = ['clean:all', 'concat', 'strip_code',
         'incbld', 'readpkg', 'string-replace:version', 'chmod:mainRO', 'pbcopy'];
 
     _writeln(grunt, 'Starting IridiumGrunt...');
