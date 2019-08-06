@@ -355,7 +355,7 @@ IridiumGrunt.prototype.registerTasks = function() {
     });
 
     grunt.registerTask('pbcopy', 'copy main.js to clipboard', function(){
-        // This funciton support OSX only!
+        // This function support OSX only!
         // TODO: Add check for OSX
 
         function pbcopy(data) {
@@ -397,7 +397,6 @@ IridiumGrunt.prototype.registerTasks = function() {
         });
     });
   
-
     // Write new versions to packages.json
     grunt.registerTask('npm-update-ver', 'Write new versions to package.json', function() {
         var done = this.async();
