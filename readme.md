@@ -163,10 +163,8 @@ module.exports = function(grunt) {
 - `grunt build:release` - сборка релизной версии проекта (увеличивается номер minor версии, увеличивается build)
 - `grunt build:script` - сборка только скрипта **main.js**  (увеличивается номер build). На Mac OS скрипт копируется в буфер обмена.
 - `grunt build:from_temp` - сборка версии проекта из папки **temp** (можно использовать после команды **build:script**)
-- 'grunt build:noConcat' - сборка проекта без объединения всех скриптов в одни скрипт **main.js**
-- 'grunt build:scriptNoDebug' - сборка скрипта с удалением всей отладочной выдачи **_Debug**
-- `grunt update` - обновление всех модулей: вначале запускается **npm check update**, а потом **npm update**
-- `grunt update-tags:[add | remove | force]` - добавляет или удаляет теги с номером версии в **dependencies**
+- `grunt build:noConcat` - сборка проекта без объединения всех скриптов в одни скрипт **main.js**
+- `grunt build:scriptNoDebug` - сборка скрипта с удалением всей отладочной выдачи **_Debug**
 - `grunt save-dep-order` - сохраняет текущий порядок модулей в поле **dependenciesOrder**
 
 ## Отображение текущей версии проекта в i3pro
@@ -183,6 +181,10 @@ module.exports = function(grunt) {
   ```
 
 - Сделать в GUI графические элементы и связать их с токенами проекта **AppVersion** и **BuildVersion**
+
+## История изменений
+
+- **21.03.2021:** не проверяется и не записывается хэш модулей в *package.json* 
 
 ## Авторы
 - Александр Пивоваров aka Bladerunner2020 ([pivovarov@gmail.com](mailto:pivovarov@gmail.com))

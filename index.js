@@ -19,13 +19,13 @@ function IridiumGrunt(grunt) {
 
     this.buildReleaseTasks = [
         'clean:all', 'fileExists','copy:irpz', 'unzip', 'clean:prepare', 'concat', 'strip_code',
-        'incbld', 'version:project:minor', 'readpkg', 'update-tags:add', 'string-replace:version', 'uglify', 'chmod:mainRO', 'compress', 'rename'];
+        'incbld', 'version:project:minor', 'readpkg', 'string-replace:version', 'uglify', 'chmod:mainRO', 'compress', 'rename'];
     this.buildHotfixTasks = [
         'clean:all', 'fileExists','copy:irpz', 'unzip', 'clean:prepare', 'concat', 'strip_code',
-        'incbld', 'version:project:patch', 'readpkg', 'update-tags:add', 'string-replace:version', 'uglify', 'chmod:mainRO', 'compress', 'rename'];
+        'incbld', 'version:project:patch', 'readpkg', 'string-replace:version', 'uglify', 'chmod:mainRO', 'compress', 'rename'];
     this.buildTasks = [
         'clean:all', 'fileExists','copy:irpz', 'unzip', 'clean:prepare', 'concat', 'strip_code',
-        'incbld', 'readpkg', 'update-tags:add', 'string-replace:version', 'chmod:mainRO', 'compress', 'rename'];
+        'incbld', 'readpkg', 'string-replace:version', 'chmod:mainRO', 'compress', 'rename'];
     this.buildScriptNoDebug = ['clean:all', 'concat', 'strip_code',
         'incbld', 'readpkg', 'string-replace:version', 'string-replace:debug', 'chmod:mainRO', 'pbcopy'];
     this.buildNoConcat = [
@@ -78,55 +78,6 @@ function getPackageValue(grunt, value, fileName) {
     return package_json? package_json[value] : null;
 }
 
-/**
- * Add tags with version info to dependencies (info is taken from installed modules (package.json files in node_modules))
- * @param {*} grunt 
- * @param {boolean} force - if true updates dependencies and restore their original order
- */
-function updateGitTags(grunt, force) {
-    var options = grunt.config.get('update-tags');
-    var moduleList = options.list;
-    var pkg = grunt.config.get('pkg');
-    var dependencies = pkg.dependencies;
-
-    var updated = false;
-    for (var i = 0; i < moduleList.modules.length; i++) {
-        var module = moduleList.modules[i];
-        var packagePath = module.json;
-        var name  = module.name;
-        var installedCommitUrl = getPackageValue(grunt, '_resolved', packagePath);  // link to installled commit
-        var dep = dependencies[name];
-
-        if (!installedCommitUrl) {
-            _warn(grunt, 'Module ' + name + ' has no _resolved in package.json');
-            continue;
-        }
-
-        var installedCommitIsh = installedCommitUrl.replace(/.+#/, '');                  // extact commit-ish
-        var oldCommitIsh  = dep.replace(/.+#/, '');                                 // extract commit-ish from dependency
-        if (oldCommitIsh == dep) { oldCommitIsh = 'none'; }
-        dep = dependencies[name].replace(/#.+$/, '');                               // remove commit-ish
-
-        if (oldCommitIsh != installedCommitIsh || force) {
-            _writeln(grunt, 'Updating: ' + dep + ': ' + oldCommitIsh + ' => ' + installedCommitIsh);
-            dep = installedCommitUrl;
-
-            // This is necessary to restore original order of dependencies in package.json
-            if (force) {
-                delete dependencies[name];
-            }
-
-            dependencies[name] = dep;
-            updated = true;
-        }
-    }
-
-    if (updated) {
-        _writeln(grunt, 'Updating package.json...');
-        grunt.file.write('package.json', JSON.stringify(pkg, null, 2));
-    }
-}
-
 function saveDependenciesOrder(grunt) {
     var pkg = grunt.config.get('pkg');
     var dependencies = pkg.dependencies || {};   
@@ -142,37 +93,6 @@ function saveDependenciesOrder(grunt) {
         _writeln(grunt, 'Saving dependencies order to package.json');
         grunt.file.write('package.json', JSON.stringify(pkg, null, 2));
     }
-}
-
-/**
- * Remove tags with version info from dependencies
- * @param {*} grunt 
- */
-function removeGitTags(grunt) {
-    var options = grunt.config.get('update-tags');
-    var moduleList = options.list;
-    var pkg = grunt.config.get('pkg');
-    var dependencies = pkg.dependencies;
-
-    var updated = false;
-    for (var i = 0; i < moduleList.modules.length; i++) {
-        var name  = moduleList.modules[i].name;
-        var dep = dependencies[name];
-        var commitIsh  = dep.replace(/.+#/, '');
-        dep = dependencies[name].replace(/#.+$/, '');
-
-        if (dependencies[name] != dep) {
-            _writeln(grunt, 'Updating: ' + dep + ': removed ' + commitIsh);
-            dependencies[name] = dep;
-            updated = true;
-        }
-    }
-
-    if (updated) {
-        _writeln(grunt, 'Updating package.json...');
-        grunt.file.write('package.json', JSON.stringify(pkg, null, 2));
-    }
-
 }
 
 function buildLocalScriptList(grunt, mainJS, jsonPath) {
@@ -322,36 +242,8 @@ IridiumGrunt.prototype.registerTasks = function() {
     grunt.registerTask('build:from_temp', ['compress', 'rename']);
     grunt.registerTask('clear', ['clean:all']);
 
-    grunt.registerMultiTask('update-tags', 'Update dependencies', function() {
-        // This task add or remove version tags to all dependencies in package.json
-
-        switch (this.target) {
-            case 'add':
-                updateGitTags(grunt);
-                break;
-            case 'force':
-                updateGitTags(grunt, true);
-                break;    
-            case 'remove':
-                removeGitTags(grunt);
-                break;
-            default:
-                _fatal(grunt, 'Unexpected target for "update-tags" (expected "add" or "remove"');        
-        }
-    });
-
     grunt.registerTask('save-dep-order', 'Save dependencies order', function(){
         saveDependenciesOrder(grunt);
-    });
-
-    // Install NPM Updates
-    grunt.registerTask('update', 'Update package.json and update npm modules', function() {
-        _writeln(grunt, 'If you get an error here, run "npm install -g npm-check-updates".');
-        
-        grunt.task.run('update-tags:remove');
-        grunt.task.run('npm-update-ver');
-        grunt.task.run('npm-update');
-        grunt.task.run('update-tags:force');
     });
 
     grunt.registerTask('pbcopy', 'copy main.js to clipboard', function(){
@@ -394,42 +286,6 @@ IridiumGrunt.prototype.registerTasks = function() {
                 _warn(grunt, 'Failed to copy main.js to clipboard');
                 done();
             }
-        });
-    });
-  
-    // Write new versions to packages.json
-    grunt.registerTask('npm-update-ver', 'Write new versions to package.json', function() {
-        var done = this.async();
-
-        _writeln(grunt, 'Checking for npm modules updates ...');
-
-        grunt.util.spawn({
-            cmd: 'ncu',
-            args: ['-u'],
-            opts: {
-                stdio: 'inherit',
-            }
-        }, function () {
-            _writeln(grunt, 'New versions were written to "package.json".');
-            done();
-        });
-    });
-
-    // Update npm modules
-    grunt.registerTask('npm-update', 'Update npm modules', function() {
-        var done = this.async();
-
-        _writeln(grunt, 'Installing npm modules updates ...');
-
-        grunt.util.spawn({
-            cmd: 'npm',
-            args: ['update','--loglevel','warn'],
-            opts: {
-                stdio: 'inherit',
-            }
-        }, function () {
-            _writeln(grunt, 'NPM modules were updated.');
-            done();
         });
     });
 };
@@ -479,12 +335,6 @@ IridiumGrunt.prototype.initGruntConfig = function() {
 
     var initJson = {
         pkg: pkg,
-        'update-tags': {
-            list: moduleScriptList,
-            remove : {},
-            force: {},
-            add : {}
-        },
         version: {
             project: {
                 src: ['package.json']
